@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ino.web.freeBoard.mapper.FreeBoardMapper">
+
+
+	<select id="freeBoardGetList" resultType="hashMap" parameterType="hashMap"> <!-- resultType="ino.web.board.dto.BoardDto" -->
+		<!-- SELECT  decode(code_type, '01','자유','02','익명','03','QnA') codeType, NUM, NAME, TITLE, CONTENT, TO_CHAR(REGDATE , 'YYYY/MM/DD') AS REGDATE FROM FREEBOARD -->
+		SELECT	*
+		FROM
+			(
+			SELECT 
+				(
+					SELECT 
+                    	D_CODENAME
+                    FROM
+                    	DETAILTABLE A, MASTERTABLE B 
+                    WHERE 
+                    	B.CODE = 'M001'
+                    	AND A.CODE = B.CODE(+)
+                    	AND A.D_CODE(+) = N1.CODE_TYPE
+                    	AND A.USE_YN(+) = 'Y' AND B.USE_YN(+) = 'Y'
+				) CODETYPE
+				, N1.NUM
+				, N1.NAME
+				, N1.TITLE
+				, N1.CONTENT
+				, TO_CHAR(N1.REGDATE , 'YYYY/MM/DD') AS REGDATE 
+				, ROWNUM AS NUMCNT
+			FROM 
+				(
+	                SELECT * 
+	                FROM FREEBOARD
+	                WHERE 1=1
+						<if test="type == 1">
+							AND code_Type = ${typeSearch}
+						</if>
+						<if test="type == 2">
+							AND num = #{search}
+						</if>
+						<if test="type == 3">
+							AND title LIKE '%'||#{search}||'%'
+						</if>
+						<if test="type == 4">
+							AND name LIKE '%'||#{search}||'%'
+						</if>
+						<if test="type == 5">
+							AND TO_CHAR(REGDATE, 'YYYYMMDD') 
+								BETWEEN #{date1}
+								AND #{date2} 
+						</if>
+	                ORDER BY 
+	                    NUM DESC
+	            ) N1
+			)
+		WHERE NUMCNT BETWEEN #{index1} AND #{index2}
+		
+	</select>
+	
+	<!-- <select id="freeBoardGetList" resultType="hashMap" parameterType="hashMap"> resultType="ino.web.board.dto.BoardDto"
+		SELECT  decode(code_type, '01','자유','02','익명','03','QnA') codeType, NUM, NAME, TITLE, CONTENT, TO_CHAR(REGDATE , 'YYYY/MM/DD') AS REGDATE FROM FREEBOARD
+		SELECT	*
+		FROM
+			(
+			SELECT case when N1.code_type='01' then '자유'
+						when N1.code_type='02' then '익명'
+						when N1.code_type='03' then 'QnA' 
+					end as CODETYPE
+					, N1.NUM
+					, N1.NAME
+					, N1.TITLE
+					, N1.CONTENT
+					, TO_CHAR(N1.REGDATE , 'YYYY/MM/DD') AS REGDATE 
+					, ROWNUM AS NUMCNT
+			FROM 
+				(
+	                SELECT * 
+	                FROM FREEBOARD
+	                WHERE 1=1
+	                	<if test="type == 0"></if>
+						<if test="type == 1">
+							AND code_Type = ${typeSearch}
+						</if>
+						<if test="type == 2">
+							AND num = #{search}
+						</if>
+						<if test="type == 3">
+							AND title LIKE '%'||#{search}||'%'
+						</if>
+						<if test="type == 4">
+							AND name LIKE '%'||#{search}||'%'
+						</if>
+						<if test="type == 5">
+							AND TO_CHAR(REGDATE, 'YYYYMMDD') 
+								BETWEEN #{date1}
+								AND #{date2} 
+						</if>
+	                ORDER BY 
+	                    NUM DESC
+	            ) N1
+			)
+			WHERE NUMCNT BETWEEN #{index1} AND #{index2}
+	</select> -->
+	
+	<select id="freeBoardGetListCnt" resultType="int" parameterType="hashMap"> <!-- resultType="ino.web.board.dto.BoardDto" -->
+		<!-- SELECT  decode(code_type, '01','자유','02','익명','03','QnA') codeType, NUM, NAME, TITLE, CONTENT, TO_CHAR(REGDATE , 'YYYY/MM/DD') AS REGDATE FROM FREEBOARD -->
+		select count(*) as cnt
+		FROM FREEBOARD 
+		WHERE 1=1 
+		<if test="type == 0"></if>
+		<if test="type == 1">
+			AND code_Type = ${typeSearch}
+		</if>
+		<if test="type == 2">
+			AND num = #{search}
+		</if>
+		<if test="type == 3">
+			AND title LIKE '%'||#{search}||'%'
+		</if>
+		<if test="type == 4">
+			AND name LIKE '%'||#{search}||'%'
+		</if>
+		<if test="type == 5">
+			AND TO_CHAR(REGDATE, 'YYYYMMDD') 
+				BETWEEN #{date1}
+				AND #{date2} 
+		</if>
+	</select>
+	<insert id="freeBoardInsertPro" parameterType="freeBoardDto">
+		INSERT INTO FREEBOARD
+			( CODE_TYPE
+			, NUM
+			, TITLE
+			, NAME
+			, REGDATE
+			, CONTENT
+		) VALUES (
+			#{codeType}
+			, BOARD_SEQ.NEXTVAL
+			, #{title}
+			, #{name}
+			, SYSDATE
+			, #{content} )
+	</insert>
+
+	<select id="freeBoardDetailByNum" resultType="freeBoardDto" parameterType="int">
+		SELECT code_type as codeType
+				, NUM
+				, TITLE
+				, NAME
+				, TO_CHAR(REGDATE,'YYYY/MM/DD') REGDATE
+				, CONTENT
+		FROM FREEBOARD
+		WHERE NUM=#{num}
+	</select>
+
+	<select id="freeBoardNewNum" resultType="int">
+		SELECT MAX(NUM)
+		FROM FREEBOARD
+	</select>
+
+	<update id="freeBoardModify" parameterType="freeBoardDto" >
+		UPDATE FREEBOARD
+		SET     CODE_TYPE = #{codeType}
+				, TITLE = #{title}
+				, CONTENT = #{content}
+		WHERE NUM = #{num}
+
+	</update>
+
+	<update id="freeBoardDelete" parameterType="int">
+		DELETE FROM FREEBOARD
+		WHERE NUM
+		= #{num}
+
+	</update>
+	
+ 	<delete id="freeBoardDelete1" parameterType="java.util.List">
+		DELETE FROM FREEBOARD
+		WHERE NUM IN
+		<foreach collection="list" item="item" index="index" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</delete> 
+
+		
+	<!-- <select id="selectList" parameterType="int" resultType="freeBoardDto">
+		SELECT case when code_type='01' then '자유'
+					when code_type='02' then '익명'
+					when code_type='03' then 'QnA' 
+				end as codeType
+				, NUM
+				, NAME
+				, TITLE
+				, CONTENT
+				, TO_CHAR(REGDATE , 'YYYY/MM/DD') AS REGDATE 
+		FROM FREEBOARD
+		WHERE code_type=#{type}
+	</select> -->
+	
+	<select id="codeListA" resultType="hashMap" > <!-- resultType="ino.web.board.dto.BoardDto" -->
+			SELECT 
+				b.d_code
+				, b.d_codename
+			FROM 
+			mastertable A, detailtable B
+			WHERE a.code = b.code
+			and a.code = 'M001'
+			and a.use_yn = 'Y'
+			and b.use_yn = 'Y'
+	</select>
+	<select id="codeListB" resultType="hashMap" > <!-- resultType="ino.web.board.dto.BoardDto" -->
+			SELECT 
+				b.d_code
+				, b.d_codename
+			FROM 
+			mastertable A, detailtable B
+			WHERE a.code = b.code
+			and a.code = 'M002'
+			and a.use_yn = 'Y'
+			and b.use_yn = 'Y'
+	</select>
+
+</mapper>
